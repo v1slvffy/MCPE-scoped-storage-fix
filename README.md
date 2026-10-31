@@ -1,0 +1,1 @@
+# MCPE-scoped-storage-fix
