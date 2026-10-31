@@ -2,40 +2,32 @@
 
 Solusi *rootless* untuk mengatasi error `Permission denied` saat menambah, mengedit, atau menghapus file di folder data Minecraft Bedrock (Android 11–16).
 
----
-
 ## Masalah
 
-Di Android 11 ke atas, sistem menerapkan **Scoped Storage** yang memblokir akses langsung ke `/Android/data/`. Sebagian game masih bisa dimodifikasi lewat file manager berbasis Shizuku karena foldernya dibuat dengan izin grup `0770` atau `0775`.
+Di Android 11 ke atas, sistem menerapkan Scoped Storage yang memblokir akses langsung ke `/Android/data/`. Sebagian game masih bisa dimodifikasi lewat file manager berbasis Shizuku karena foldernya dibuat dengan izin grup `0770` atau `0775`.
 
-Namun, Minecraft Bedrock mengunci folder datanya dengan izin **POSIX DAC `0750` (`drwxr-s---`)**:
-- **Owner (`u0_a...` / Minecraft)**: Punya izin baca, tulis, eksekusi (`rwx`).
-- **Group (`ext_data_rw`)**: Cuma dikasih izin baca dan masuk (`r-s`), **tanpa izin tulis (`w`)**.
+Namun, Minecraft Bedrock mengunci folder datanya dengan izin POSIX DAC `0750` (`drwxr-s---`):
+- Owner (`u0_a...` / Minecraft): Punya izin baca, tulis, eksekusi (`rwx`).
+- Group (`ext_data_rw`): Cuma dikasih izin baca dan masuk (`r-s`), tanpa izin tulis (`w`).
 
 Akibatnya, aplikasi file manager (ZArchiver, MT Manager) maupun shell ADB (`uid=2000`) tetap ditolak (*Permission denied*) saat mencoba *paste* addon, edit config, atau hapus map lama.
 
----
-
 ## Solusi: DAC Ownership Pre-creation & SGID Inheritance
 
-Folder induk `/files/` memiliki izin `drwxrws---` dengan bit **SGID (*Set Group ID*)** aktif untuk grup `ext_data_rw`. 
+Folder induk `/files/` memiliki izin `drwxrws---` dengan bit SGID (*Set Group ID*) aktif untuk grup `ext_data_rw`. 
 
 Akalinnya:
 1. Kita backup folder `games/` lama.
-2. Sebelum Minecraft sempat me-generate foldernya kembali, kita buat ulang folder `games/com.mojang/` beserta seluruh subfoldernya (`minecraftWorlds`, `resource_packs`, `behavior_packs`, dll.) menggunakan user **`shell`** (QuickShell / ADB).
-3. Karena dibuat oleh `shell`, kepemilikan inode (*owner*) otomatis jatuh ke user `shell` dengan izin penuh **`drwxrws---`**.
+2. Sebelum Minecraft sempat me-generate foldernya kembali, kita buat ulang folder `games/com.mojang/` beserta seluruh subfoldernya (`minecraftWorlds`, `resource_packs`, `behavior_packs`, dll.) menggunakan user `shell` (QuickShell / ADB).
+3. Karena dibuat oleh `shell`, kepemilikan inode (*owner*) otomatis jatuh ke user `shell` dengan izin penuh `drwxrws---`.
 4. Karena folder induk berstatus SGID, seluruh subfolder tetap mewarisi grup `ext_data_rw`. Artinya, aplikasi Minecraft tetap bisa membaca dan me-load world/addon tanpa kendala.
-
----
 
 ## Syarat
 
 - Perangkat Android 11, 12, 13, 14, 15, atau 16
 - [Shizuku](https://shizuku.rikka.app/) sudah terpasang dan aktif (via Wireless Debugging).
-- Aplikasi terminal yang mendukung Shizuku (misalnya **QuickShell** atau **Termux** dengan `rish`).
-- **MT Manager** (disarankan untuk manajemen file sehari-hari).
-
----
+- Aplikasi terminal yang mendukung Shizuku (misalnya QuickShell atau Termux dengan `rish`).
+- MT Manager (disarankan untuk manajemen file sehari-hari).
 
 ## Langkah Instalasi / Eksekusi
 
@@ -70,7 +62,7 @@ mkdir /storage/emulated/0/Android/data/com.mojang.minecraftpe/files/games/com.mo
 mkdir /storage/emulated/0/Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftpe
 ```
 
-> **Penting**: Subfolder di atas wajib dibuat sebelum Minecraft dibuka kembali. Jika Minecraft dibuka dalam keadaan folder kosong, sistem game akan men-generate folder tersebut dengan kepemilikan `u0_a...` (terkunci kembali).
+> Penting: Subfolder di atas wajib dibuat sebelum Minecraft dibuka kembali. Jika Minecraft dibuka dalam keadaan folder kosong, sistem game akan men-generate folder tersebut dengan kepemilikan `u0_a...` (terkunci kembali).
 
 ### 4. Restore Data Lama dari Backup
 Kembalikan map dan pack lama ke folder baru:
@@ -87,13 +79,11 @@ Pastikan izin folder sudah berubah menjadi milik `shell`:
 ls -ld /storage/emulated/0/Android/data/com.mojang.minecraftpe/files/games/com.mojang/*
 ```
 
-Output yang benar akan menampilkan izin **`drwxrws---`** dengan user **`shell`** dan group **`ext_data_rw`**.
-
----
+Output yang benar akan menampilkan izin `drwxrws---` dengan user `shell` dan group `ext_data_rw`.
 
 ## Selesai
-Dengan ini sudah selesai dan siap untuk pengeditan di dalam folder **com.mojang**, pengeditan dapat dilakukan di aplikasi file manager seperti **MT Manager** **ZArchiver** dan aplikasi sejenisnya. (Disarankan menggunakan MT Manager)
-1. Buka **MT Manager** -> Masuk ke **Settings** -> Pastikan opsi **Shizuku** sudah aktif.
+Dengan ini sudah selesai dan siap untuk pengeditan di dalam folder com.mojang, pengeditan dapat dilakukan di aplikasi file manager seperti MT Manager ZArchiver dan aplikasi sejenisnya. (Disarankan menggunakan MT Manager)
+1. Buka MT Manager -> Masuk ke Settings -> Pastikan opsi Shizuku sudah aktif.
 2. Buka path:
    `Android/data/com.mojang.minecraftpe/files/games/com.mojang/`
 3. Kamu bisa langsung copy-paste addon baru, ekstrak world, atau menghapus file tanpa perlu mengetik perintah terminal lagi.
